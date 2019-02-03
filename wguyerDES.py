@@ -117,8 +117,100 @@ def createKeys(key64):
         d = Dn
     return keys
 
-key64 = input("Please input key: ")
-print("The input key is : \n" + key64 +"\n")
-subKeys = createKeys(key64)
-for i in range(16):
-    print("Subkey number " + str(i+1) + " is: \n" + subKeys[i] + "\n")
+def textToBin(text):
+    binString = bin(int.from_bytes(text.encode(), 'big'))
+    return binString[2:]
+
+def stripText(text):
+    text = re.sub("[^A-Za-z0-9]+", "", text)
+    return text
+
+def preProcess(text):
+    check = 0
+    if len(text) % 64 != 0:
+        check = 1
+    textBlocks = [""] * (int(len(text)/64) + check)
+    for i in range(len(text)):
+        x = int(i/64)
+        textBlocks[x] += text[i]
+    for i in range(len(textBlocks)):
+        while len(textBlocks[i]) < 64:
+            textBlocks[i] += "0"
+    return textBlocks
+
+def initialPermutation(block64):
+    permutedBlock = ""
+    for i in IP:
+        permutedBlock += block64[i-1]
+    return permutedBlock
+
+def expansion(block32):
+    expandedBlock = ""
+    for i in E:
+        expandedBlock += block32[i-1]
+    return expandedBlock
+
+def xOR(block1,block2):
+    xorBlock = ""
+    for i in range(len(block1)):
+        if block1[i] == block2[i]:
+            xorBlock += "0"
+        else:
+            xorBlock += "1"
+    return xorBlock
+
+def sBox(block48):
+    block32 = ""
+    sixBlocks = [""] * 8
+    for i in range(8):
+        for j in range(6):
+            sixBlocks[i] += block48[j+(6*i)]
+    for i in range(8):
+        block32 += bin(S[i][int((sixBlocks[i][0]+sixBlocks[i][5]),2)][int((sixBlocks[i][1:5]),2)])[2:].zfill(4)
+    return block32
+
+def permutationP(block48):
+    permuted48 = ""
+    for i in P:
+        permuted48 += block48[i-1]
+    return permuted48
+
+
+def encryptFunction(encryptText,subkeyList):
+    encryptText = stripText(encryptText)
+    encryptText = "0" + textToBin(encryptText)
+    preBlocks = preProcess(encryptText)
+    preBlocks[0] = initialPermutation(preBlocks[0])
+    Li_1 = preBlocks[0][:32]
+    Ri_1 = preBlocks[0][32:]
+    Ri_1E = expansion(Ri_1)
+    Ri_1E = xOR(Ri_1E,subkeyList[0])
+    # #Prints xOR
+    # for x in range(0,len(Ri_1E),6):
+    #     print(Ri_1E[x:x+6])
+    Ri_1E = sBox(Ri_1E)
+    Ri_1E = permutationP(Ri_1E)
+    temp = Ri_1
+    Ri_1 = xOR(Li_1,Ri_1E)
+    print(Ri_1)
+    #End iteration 1 Correct
+
+
+textToEncrypt = "datadatadata" #input("Text to encrypt: ")
+key64 = "password" #input("Password: ")
+print("The input key is : \n" + textToBin(key64) +"\n")
+subKeys = createKeys(textToBin(key64))
+# for i in range(16):
+#     print("Subkey number " + str(i+1) + " is: \n" + subKeys[i] + "\n")
+encryptFunction(textToEncrypt,subKeys)
+
+
+
+
+# #Show Preprocessing
+# for i in preBlocks:
+#     for x in range(0,len(i),8):
+#         print(i[x:x+8])
+#     print()
+
+
