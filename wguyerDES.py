@@ -1,4 +1,5 @@
 import re
+import os
 
 #Permuted Choice 1
 PC_1 = [57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,27,19,11,3,60,52,44,36,63,55,47,39,31,23,15,7,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,28,20,12,4]
@@ -9,7 +10,7 @@ PC_2 = [14,17,11,24,1,5,3,28,15,6,21,10,23,19,12,4,26,8,16,7,27,20,13,2,41,52,31
 #Initial Permutation
 IP = [58,50,42,34,26,18,10,2,60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6,64,56,48,40,32,24,16,8,57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3,61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7]
 #Inverse Initial Permutation
-IP_INVERSE = [40,8,48,16,56,21,64,32,39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30,37,5,45,13,53,21,61,29,36,4,44,12,52,20,60,28,35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26,33,1,41,9,49,17,57,25]
+IP_INVERSE = [40,8,48,16,56,24,64,32,39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30,37,5,45,13,53,21,61,29,36,4,44,12,52,20,60,28,35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26,33,1,41,9,49,17,57,25]
 #E Bit-selection
 E = [32,1,2,3,4,5,4,5,6,7,8,9,8,9,10,11,12,13,12,13,14,15,16,17,16,17,18,19,20,21,20,21,22,23,24,25,24,25,26,27,28,29,28,29,30,31,32,1]
 #Permutation function P
@@ -102,7 +103,7 @@ def createKeys(key64):
     keys = []
     #Perform Permuted Choice 1
     key56 = permutedChoice1(key64)
-    print("The key after permuted choice 1 is: \n" + key56 + "\n")
+    print("The key after permute is: " + key56 + "\n")
     #Split bits
     c = key56[:28]
     d = key56[28:]
@@ -113,6 +114,7 @@ def createKeys(key64):
         Dn = shiftBits(i,d)
         #Permuted Choice 2
         keys.append(permutedChoice2(Cn + Dn))
+        print("Key " + str(i+1) + " is " + keys[i])
         c = Cn
         d = Dn
     return keys
@@ -175,42 +177,45 @@ def permutationP(block48):
         permuted48 += block48[i-1]
     return permuted48
 
+def inverseP(block64):
+    permutedBlock = ""
+    for i in IP_INVERSE:
+        permutedBlock += block64[i-1]
+    return permutedBlock
 
 def encryptFunction(encryptText,subkeyList):
     encryptText = stripText(encryptText)
     encryptText = "0" + textToBin(encryptText)
     preBlocks = preProcess(encryptText)
-    preBlocks[0] = initialPermutation(preBlocks[0])
-    Li_1 = preBlocks[0][:32]
-    Ri_1 = preBlocks[0][32:]
-    Ri_1E = expansion(Ri_1)
-    Ri_1E = xOR(Ri_1E,subkeyList[0])
-    # #Prints xOR
-    # for x in range(0,len(Ri_1E),6):
-    #     print(Ri_1E[x:x+6])
-    Ri_1E = sBox(Ri_1E)
-    Ri_1E = permutationP(Ri_1E)
-    temp = Ri_1
-    Ri_1 = xOR(Li_1,Ri_1E)
-    print(Ri_1)
-    #End iteration 1 Correct
+    print("Data after preprocessing: \n")
+    for i in preBlocks:
+        for x in range(0,len(i),8):
+            print(i[x:x+8])
+        print()
+    for i in range(len(preBlocks)):
+        preBlocks[i] = initialPermutation(preBlocks[i])
+        print("Initial permuation result: \n" + preBlocks[i] + "\n")
+        Li_1 = preBlocks[i][:32]
+        Ri_1 = preBlocks[i][32:]
+        for x in range(16):
+            print("Iteration: " + str(x+1))
+            print("L_i-1:\n" + Li_1 + "\n")
+            print("R_i-1:\n" + Ri_1 + "\n")
+            temp = Ri_1
+            Ri_1E = expansion(Ri_1)
+            Ri_1E = xOR(Ri_1E,subkeyList[x])
+            Ri_1E = sBox(Ri_1E)
+            Ri_1E = permutationP(Ri_1E)
+            Ri_1 = xOR(Li_1,Ri_1E)
+            Li_1 = temp
+        preBlocks[i] = inverseP(Ri_1 + Li_1)
+    return preBlocks
 
-
-textToEncrypt = "datadatadata" #input("Text to encrypt: ")
-key64 = "password" #input("Password: ")
-print("The input key is : \n" + textToBin(key64) +"\n")
+with open(os.path.join(os.getcwd(), "plaintext.txt"), "r") as f:
+    textToEncrypt = f.read()
+print("Text to encrypt: " + textToEncrypt)
+key64 = input("Password: ")
 subKeys = createKeys(textToBin(key64))
-# for i in range(16):
-#     print("Subkey number " + str(i+1) + " is: \n" + subKeys[i] + "\n")
-encryptFunction(textToEncrypt,subKeys)
-
-
-
-
-# #Show Preprocessing
-# for i in preBlocks:
-#     for x in range(0,len(i),8):
-#         print(i[x:x+8])
-#     print()
-
+encryptedText = encryptFunction(textToEncrypt,subKeys)
+print(encryptedText)
 
