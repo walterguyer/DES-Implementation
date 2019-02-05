@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 
 #Permuted Choice 1
 PC_1 = [57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,27,19,11,3,60,52,44,36,63,55,47,39,31,23,15,7,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,28,20,12,4]
@@ -129,12 +130,16 @@ def stripText(text):
 
 def preProcess(text):
     check = 0
+    #Check if last block will need filled
     if len(text) % 64 != 0:
         check = 1
+    #Initialize blocks to be filled using check to account for unfilled box
     textBlocks = [""] * (int(len(text)/64) + check)
+    #Fill blocks with text
     for i in range(len(text)):
         x = int(i/64)
         textBlocks[x] += text[i]
+    #Fill 0's in end block if necessary
     for i in range(len(textBlocks)):
         while len(textBlocks[i]) < 64:
             textBlocks[i] += "0"
@@ -184,6 +189,7 @@ def inverseP(block64):
     return permutedBlock
 
 def encryptFunction(encryptText,subkeyList):
+    #Text Processing
     encryptText = stripText(encryptText)
     encryptText = "0" + textToBin(encryptText)
     preBlocks = preProcess(encryptText)
@@ -197,25 +203,95 @@ def encryptFunction(encryptText,subkeyList):
         print("Initial permuation result: \n" + preBlocks[i] + "\n")
         Li_1 = preBlocks[i][:32]
         Ri_1 = preBlocks[i][32:]
+        #Encryption Cycle
         for x in range(16):
             print("Iteration: " + str(x+1))
             print("L_i-1:\n" + Li_1 + "\n")
             print("R_i-1:\n" + Ri_1 + "\n")
             temp = Ri_1
             Ri_1E = expansion(Ri_1)
+            print("Expantion permutation:\n" + Ri_1E + "\n")
             Ri_1E = xOR(Ri_1E,subkeyList[x])
+            print("XOR with key:")
+            for y in range(0,len(Ri_1E),6):
+                print(Ri_1E[y:y+6])
+            print()
             Ri_1E = sBox(Ri_1E)
+            print("S-box substitution:\n" + Ri_1E + "\n")
             Ri_1E = permutationP(Ri_1E)
+            print("P-box substitution:\n" + Ri_1E + "\n")
             Ri_1 = xOR(Li_1,Ri_1E)
+            print("XOR with L_i-1 (This is R_i):\n" + Ri_1E + "\n")
             Li_1 = temp
+            print("End iteration: " + str(x+1) + "\n\n")
         preBlocks[i] = inverseP(Ri_1 + Li_1)
+        print("Final permutation:\n" + preBlocks[i] + "\n")
     return preBlocks
 
+#Same as encryption w/o preprocessing of text, w/ reverse subkey list
+def decryptFunction(encryptedBlocks,subkeyList):
+    for i in encryptedBlocks:
+        for x in range(0,len(i),8):
+            print(i[x:x+8])
+        print()
+    for i in range(len(encryptedBlocks)):
+        encryptedBlocks[i] = initialPermutation(encryptedBlocks[i])
+        print("Initial permuation result: \n" + encryptedBlocks[i] + "\n")
+        Li_1 = encryptedBlocks[i][:32]
+        Ri_1 = encryptedBlocks[i][32:]
+        for x in range(16):
+            print("Iteration: " + str(x+1))
+            print("L_i-1:\n" + Li_1 + "\n")
+            print("R_i-1:\n" + Ri_1 + "\n")
+            temp = Ri_1
+            Ri_1E = expansion(Ri_1)
+            print("Expantion permutation:\n" + Ri_1E + "\n")
+            Ri_1E = xOR(Ri_1E,subkeyList[x])
+            print("XOR with key:")
+            for y in range(0,len(Ri_1E),6):
+                print(Ri_1E[y:y+6])
+            print()
+            Ri_1E = sBox(Ri_1E)
+            print("S-box substitution:\n" + Ri_1E + "\n")
+            Ri_1E = permutationP(Ri_1E)
+            print("P-box substitution:\n" + Ri_1E + "\n")
+            Ri_1 = xOR(Li_1,Ri_1E)
+            print("XOR with L_i-1 (This is R_i):\n" + Ri_1E + "\n")
+            Li_1 = temp
+            print("End iteration: " + str(x+1) + "\n\n")
+        encryptedBlocks[i] = inverseP(Ri_1 + Li_1)
+        print("Final permutation:\n" + encryptedBlocks[i] + "\n")
+    return encryptedBlocks
+
+#Open plaintext.txt file
 with open(os.path.join(os.getcwd(), "plaintext.txt"), "r") as f:
     textToEncrypt = f.read()
+    f.close()
+
+#Print text from file and grab password from user
 print("Text to encrypt: " + textToEncrypt)
 key64 = input("Password: ")
+
+#Create output.txt file and change stdout to file
+sys.stdout = open(os.path.join(os.getcwd(), "output.txt"), "w")
+print("Text to encrypt: " + textToEncrypt + "\nPassword: " + key64)
+
+#Subkey generation and encryption call
 subKeys = createKeys(textToBin(key64))
 encryptedText = encryptFunction(textToEncrypt,subKeys)
-print(encryptedText)
 
+#Prints encrypted blocks
+for i in encryptedText:
+    for x in range(0,len(i),8):
+        print(i[x:x+8])
+    print("\n")
+
+#Decryption Call w/ reversed subkey list
+decryptedTextBlocks = decryptFunction(encryptedText,list(reversed(subKeys)))
+
+#Creates string representation of decrypted blocks
+decryptedText = ""
+for i in decryptedTextBlocks:
+    decryptedText += i
+decryptedText = "0b" + decryptedText
+print(int(decryptedText, 2).to_bytes((int(decryptedText, 2).bit_length() + 7) // 8, 'big').decode())
