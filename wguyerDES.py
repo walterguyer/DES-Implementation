@@ -1,3 +1,14 @@
+# Walter Guyer
+# wnguyer
+# 800093011
+# Programming Assignment #1
+# 6 FEB 2019
+# wguyerDES.py should be run using command "python3 wguyerDES.py" from
+# directory with plaintext.txt file containing text to be encrypted.
+# Program will create an output.txt file containing output from each
+# stage of encryption and decryption along with a final line at the bottom
+# with text after it has been encrypted, then decrypted. 
+
 import re
 import os
 import sys
@@ -294,4 +305,4 @@ decryptedText = ""
 for i in decryptedTextBlocks:
     decryptedText += i
 decryptedText = "0b" + decryptedText
-print(int(decryptedText, 2).to_bytes((int(decryptedText, 2).bit_length() + 7) // 8, 'big').decode())
+print(stripText(int(decryptedText, 2).to_bytes((int(decryptedText, 2).bit_length() + 7) // 8, 'big').decode()))
