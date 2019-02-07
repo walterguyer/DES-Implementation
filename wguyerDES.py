@@ -210,7 +210,7 @@ def encryptFunction(encryptText,subkeyList):
             print("R_i-1:\n" + Ri_1 + "\n")
             temp = Ri_1
             Ri_1E = expansion(Ri_1)
-            print("Expantion permutation:\n" + Ri_1E + "\n")
+            print("Expansion permutation:\n" + Ri_1E + "\n")
             Ri_1E = xOR(Ri_1E,subkeyList[x])
             print("XOR with key:")
             for y in range(0,len(Ri_1E),6):
@@ -245,7 +245,7 @@ def decryptFunction(encryptedBlocks,subkeyList):
             print("R_i-1:\n" + Ri_1 + "\n")
             temp = Ri_1
             Ri_1E = expansion(Ri_1)
-            print("Expantion permutation:\n" + Ri_1E + "\n")
+            print("Expansion permutation:\n" + Ri_1E + "\n")
             Ri_1E = xOR(Ri_1E,subkeyList[x])
             print("XOR with key:")
             for y in range(0,len(Ri_1E),6):
